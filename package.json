@@ -62,8 +62,9 @@
     "@supabase/ssr": "latest",
     "@ai-sdk/groq": "latest",
     "ai": "latest",
+    "react-paystack": "latest",
     "react-icons": "latest",
-    "react-paystack": "latest"
+    "@supabase/auth-helpers-nextjs": "latest"
   },
   "devDependencies": {
     "@types/node": "^22",

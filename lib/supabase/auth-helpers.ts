@@ -1,7 +1,9 @@
-import { getSupabaseServer } from "./server"
+import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs"
+import { cookies } from "next/headers"
 
 export async function createProfileForNewUser(userId: string, email: string, provider: string) {
-  const supabase = getSupabaseServer()
+  const cookieStore = cookies()
+  const supabase = createRouteHandlerClient({ cookies: () => cookieStore })
 
   try {
     // Check if profile already exists

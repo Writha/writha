@@ -1,5 +1,7 @@
 "use client"
 
+import type React from "react"
+
 import { useState } from "react"
 import { useRouter } from "next/navigation"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -7,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { createBrowserClient } from "@supabase/ssr"
 import { toast } from "@/components/ui/use-toast"
 import { SocialAuthButtons } from "./social-auth-buttons"
 
@@ -28,9 +30,14 @@ export function AuthForm() {
   const [registerError, setRegisterError] = useState("")
 
   const router = useRouter()
-  const supabase = getSupabaseClient()
 
-  async function handleLoginSubmit(e) {
+  // Create a fresh Supabase client for each request to avoid stale instances
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  )
+
+  async function handleLoginSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoginError("")
 
@@ -42,18 +49,20 @@ export function AuthForm() {
     setIsLoading(true)
 
     try {
-      // Simple login with email and password
+      console.log("Attempting to sign in with:", { email: loginEmail })
+
+      // Sign in with email and password
       const { data, error } = await supabase.auth.signInWithPassword({
         email: loginEmail,
         password: loginPassword,
       })
 
       if (error) {
-        console.error("Login error:", error)
-        throw new Error(error.message || "Failed to sign in")
+        console.error("Login error details:", error)
+        throw error
       }
 
-      if (data.user) {
+      if (data?.user) {
         toast({
           title: "Login successful",
           description: "Welcome back to Writha!",
@@ -61,10 +70,12 @@ export function AuthForm() {
 
         router.push("/dashboard")
         router.refresh()
+      } else {
+        throw new Error("No user returned from authentication")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error)
-      setLoginError(error.message || "Failed to sign in")
+      setLoginError(error.message || "Failed to sign in. Please check your credentials.")
 
       toast({
         title: "Login failed",
@@ -76,7 +87,7 @@ export function AuthForm() {
     }
   }
 
-  async function handleRegisterSubmit(e) {
+  async function handleRegisterSubmit(e: React.FormEvent) {
     e.preventDefault()
     setRegisterError("")
 
@@ -97,14 +108,17 @@ export function AuthForm() {
       const { data, error } = await supabase.auth.signUp({
         email: registerEmail,
         password: registerPassword,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       })
 
       if (error) {
         console.error("Registration error:", error)
-        throw new Error(error.message || "Failed to create account")
+        throw error
       }
 
-      if (data.user) {
+      if (data?.user) {
         // Step 2: Create a profile in the profiles table
         const { error: profileError } = await supabase.from("profiles").insert({
           id: data.user.id,
@@ -125,12 +139,50 @@ export function AuthForm() {
 
         setActiveTab("login")
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Registration error:", error)
       setRegisterError(error.message || "Failed to create account")
 
       toast({
         title: "Registration failed",
+        description: error.message || "Something went wrong",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  async function handleResetPassword(e: React.FormEvent) {
+    e.preventDefault()
+
+    if (!loginEmail) {
+      setLoginError("Email is required to reset password")
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      // Get the site URL from environment variable or use window.location.origin as fallback
+      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
+
+      const { error } = await supabase.auth.resetPasswordForEmail(loginEmail, {
+        redirectTo: `${siteUrl}/auth/reset-password`,
+      })
+
+      if (error) throw error
+
+      toast({
+        title: "Password reset email sent",
+        description: "Check your email for a password reset link",
+      })
+    } catch (error: any) {
+      console.error("Password reset error:", error)
+      setLoginError(error.message || "Failed to send password reset email")
+
+      toast({
+        title: "Password reset failed",
         description: error.message || "Something went wrong",
         variant: "destructive",
       })
@@ -178,6 +230,20 @@ export function AuthForm() {
                   onChange={(e) => setLoginPassword(e.target.value)}
                   required
                 />
+              </div>
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="link"
+                  className="px-0 text-sm"
+                  onClick={(e) => {
+                    e.preventDefault()
+                    handleResetPassword(e)
+                  }}
+                  disabled={isLoading}
+                >
+                  Forgot password?
+                </Button>
               </div>
               {loginError && <div className="text-sm text-red-500">{loginError}</div>}
               <Button type="submit" className="w-full" disabled={isLoading}>

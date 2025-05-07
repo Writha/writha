@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { createBrowserClient } from "@supabase/ssr"
 import { toast } from "@/components/ui/use-toast"
 import { FaGoogle, FaFacebook, FaApple } from "react-icons/fa"
 
@@ -16,15 +16,26 @@ export function SocialAuthButtons() {
     facebook: false,
     apple: false,
   })
-  const supabase = getSupabaseClient()
+
+  // Create a fresh Supabase client for each request
+  const supabase = createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+  )
 
   const handleSocialLogin = async (provider: "google" | "facebook" | "apple") => {
     setIsLoading({ ...isLoading, [provider]: true })
     try {
+      // Get the current origin for the redirect
+      const origin = window.location.origin
+      const redirectTo = `${origin}/auth/callback`
+
+      console.log(`Attempting to sign in with ${provider}, redirecting to: ${redirectTo}`)
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider,
         options: {
-          redirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
+          redirectTo,
         },
       })
 
@@ -32,12 +43,12 @@ export function SocialAuthButtons() {
         throw error
       }
     } catch (error: any) {
+      console.error(`${provider} authentication error:`, error)
       toast({
         title: "Authentication error",
-        description: error.message || "Failed to authenticate with provider",
+        description: error.message || `Failed to authenticate with ${provider}`,
         variant: "destructive",
       })
-    } finally {
       setIsLoading({ ...isLoading, [provider]: false })
     }
   }
