@@ -1,336 +1,284 @@
 "use client"
 
-import type React from "react"
-
-import { useState } from "react"
+import * as React from "react"
 import { useRouter } from "next/navigation"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { useForm } from "react-hook-form"
+import * as z from "zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { createBrowserClient } from "@supabase/ssr"
-import { toast } from "@/components/ui/use-toast"
+import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { getSupabaseClient } from "@/lib/supabase/client"
 import { SocialAuthButtons } from "./social-auth-buttons"
+import Link from "next/link"
+
+const loginSchema = z.object({
+  email: z.string().email({
+    message: "Please enter a valid email address.",
+  }),
+  password: z.string().min(6, {
+    message: "Password must be at least 6 characters.",
+  }),
+})
+
+const registerSchema = z.object({
+  email: z.string().email({
+    message: "Please enter a valid email address.",
+  }),
+  password: z.string().min(6, {
+    message: "Password must be at least 6 characters.",
+  }),
+  username: z.string().min(3, {
+    message: "Username must be at least 3 characters.",
+  }),
+})
+
+type LoginFormValues = z.infer<typeof loginSchema>
+type RegisterFormValues = z.infer<typeof registerSchema>
 
 export function AuthForm() {
-  const [isLoading, setIsLoading] = useState(false)
-  const [activeTab, setActiveTab] = useState("login")
-
-  // Login form state
-  const [loginEmail, setLoginEmail] = useState("")
-  const [loginPassword, setLoginPassword] = useState("")
-  const [loginError, setLoginError] = useState("")
-
-  // Register form state
-  const [registerEmail, setRegisterEmail] = useState("")
-  const [registerPassword, setRegisterPassword] = useState("")
-  const [registerUsername, setRegisterUsername] = useState("")
-  const [registerUserType, setRegisterUserType] = useState("reader")
-  const [registerError, setRegisterError] = useState("")
-
+  const [isLoading, setIsLoading] = React.useState<boolean>(false)
+  const [error, setError] = React.useState<string | null>(null)
+  const [success, setSuccess] = React.useState<string | null>(null)
   const router = useRouter()
+  const supabase = getSupabaseClient()
 
-  // Create a fresh Supabase client for each request to avoid stale instances
-  const supabase = createBrowserClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-  )
+  const loginForm = useForm<LoginFormValues>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  })
 
-  async function handleLoginSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setLoginError("")
+  const registerForm = useForm<RegisterFormValues>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+      username: "",
+    },
+  })
 
-    if (!loginEmail || !loginPassword) {
-      setLoginError("Email and password are required")
-      return
-    }
-
+  async function handleLoginSubmit(data: LoginFormValues) {
     setIsLoading(true)
+    setError(null)
 
     try {
-      console.log("Attempting to sign in with:", { email: loginEmail })
-
-      // Sign in with email and password
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email: loginEmail,
-        password: loginPassword,
+      const { error } = await supabase.auth.signInWithPassword({
+        email: data.email,
+        password: data.password,
       })
 
       if (error) {
-        console.error("Login error details:", error)
-        throw error
+        setError(`Login error: ${error.message}`)
+        return
       }
 
-      if (data?.user) {
-        toast({
-          title: "Login successful",
-          description: "Welcome back to Writha!",
-        })
-
-        router.push("/dashboard")
-        router.refresh()
-      } else {
-        throw new Error("No user returned from authentication")
-      }
-    } catch (error: any) {
-      console.error("Login error:", error)
-      setLoginError(error.message || "Failed to sign in. Please check your credentials.")
-
-      toast({
-        title: "Login failed",
-        description: error.message || "Something went wrong",
-        variant: "destructive",
-      })
+      router.push("/dashboard")
+      router.refresh()
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.")
+      console.error("Login error:", err)
     } finally {
       setIsLoading(false)
     }
   }
 
-  async function handleRegisterSubmit(e: React.FormEvent) {
-    e.preventDefault()
-    setRegisterError("")
-
-    if (!registerEmail || !registerPassword || !registerUsername || !registerUserType) {
-      setRegisterError("All fields are required")
-      return
-    }
-
-    if (registerPassword.length < 6) {
-      setRegisterError("Password must be at least 6 characters")
-      return
-    }
-
+  async function handleRegisterSubmit(data: RegisterFormValues) {
     setIsLoading(true)
+    setError(null)
+    setSuccess(null)
 
     try {
-      // Step 1: Sign up with Supabase Auth
-      const { data, error } = await supabase.auth.signUp({
-        email: registerEmail,
-        password: registerPassword,
+      // Register the user
+      const { error: signUpError, data: signUpData } = await supabase.auth.signUp({
+        email: data.email,
+        password: data.password,
         options: {
-          emailRedirectTo: `${window.location.origin}/auth/callback`,
+          data: {
+            username: data.username,
+          },
         },
       })
 
-      if (error) {
-        console.error("Registration error:", error)
-        throw error
+      if (signUpError) {
+        setError(`Registration error: ${signUpError.message}`)
+        return
       }
 
-      if (data?.user) {
-        // Step 2: Create a profile in the profiles table
+      // Create a profile for the user
+      if (signUpData?.user) {
         const { error: profileError } = await supabase.from("profiles").insert({
-          id: data.user.id,
-          username: registerUsername,
-          user_type: registerUserType,
-          wallet_balance: 0,
+          id: signUpData.user.id,
+          username: data.username,
+          email: data.email,
+          user_type: "reader",
+          created_at: new Date().toISOString(),
         })
 
         if (profileError) {
-          console.error("Profile creation error:", profileError)
-          throw new Error("Failed to create user profile")
+          console.error("Error creating profile:", profileError)
+          // Continue anyway as the user is created
         }
-
-        toast({
-          title: "Registration successful",
-          description: "Welcome to Writha! Please check your email to verify your account.",
-        })
-
-        setActiveTab("login")
       }
-    } catch (error: any) {
-      console.error("Registration error:", error)
-      setRegisterError(error.message || "Failed to create account")
 
-      toast({
-        title: "Registration failed",
-        description: error.message || "Something went wrong",
-        variant: "destructive",
-      })
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  async function handleResetPassword(e: React.FormEvent) {
-    e.preventDefault()
-
-    if (!loginEmail) {
-      setLoginError("Email is required to reset password")
-      return
-    }
-
-    setIsLoading(true)
-
-    try {
-      // Get the site URL from environment variable or use window.location.origin as fallback
-      const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || window.location.origin
-
-      const { error } = await supabase.auth.resetPasswordForEmail(loginEmail, {
-        redirectTo: `${siteUrl}/auth/reset-password`,
-      })
-
-      if (error) throw error
-
-      toast({
-        title: "Password reset email sent",
-        description: "Check your email for a password reset link",
-      })
-    } catch (error: any) {
-      console.error("Password reset error:", error)
-      setLoginError(error.message || "Failed to send password reset email")
-
-      toast({
-        title: "Password reset failed",
-        description: error.message || "Something went wrong",
-        variant: "destructive",
-      })
+      setSuccess("Registration successful! You can now log in.")
+      registerForm.reset()
+    } catch (err) {
+      setError("An unexpected error occurred. Please try again.")
+      console.error("Registration error:", err)
     } finally {
       setIsLoading(false)
     }
   }
 
   return (
-    <Card className="w-full max-w-md mx-auto">
-      <CardHeader>
-        <CardTitle className="text-2xl text-center">Writha</CardTitle>
-        <CardDescription className="text-center">Your cross-platform book application</CardDescription>
-      </CardHeader>
-      <CardContent>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">Login</TabsTrigger>
-            <TabsTrigger value="register">Register</TabsTrigger>
-          </TabsList>
-          <TabsContent value="login">
-            <form onSubmit={handleLoginSubmit} className="space-y-4 mt-4">
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </label>
+    <Tabs defaultValue="login" className="w-full">
+      <TabsList className="grid w-full grid-cols-2">
+        <TabsTrigger value="login">Login</TabsTrigger>
+        <TabsTrigger value="register">Register</TabsTrigger>
+      </TabsList>
+      <TabsContent value="login">
+        <div className="grid gap-6">
+          <form onSubmit={loginForm.handleSubmit(handleLoginSubmit)}>
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
+                  placeholder="name@example.com"
                   type="email"
-                  placeholder="your.email@example.com"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  required
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  autoCorrect="off"
+                  disabled={isLoading}
+                  {...loginForm.register("email")}
                 />
+                {loginForm.formState.errors.email && (
+                  <p className="text-sm text-red-500">{loginForm.formState.errors.email.message}</p>
+                )}
               </div>
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </label>
+              <div className="grid gap-2">
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  <Link href="/auth/reset-password" className="text-sm text-primary hover:underline">
+                    Forgot password?
+                  </Link>
+                </div>
                 <Input
                   id="password"
-                  type="password"
                   placeholder="••••••••"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  required
-                />
-              </div>
-              <div className="flex justify-end">
-                <Button
-                  type="button"
-                  variant="link"
-                  className="px-0 text-sm"
-                  onClick={(e) => {
-                    e.preventDefault()
-                    handleResetPassword(e)
-                  }}
+                  type="password"
+                  autoCapitalize="none"
+                  autoComplete="current-password"
                   disabled={isLoading}
-                >
-                  Forgot password?
-                </Button>
-              </div>
-              {loginError && <div className="text-sm text-red-500">{loginError}</div>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Logging in..." : "Login"}
-              </Button>
-            </form>
-          </TabsContent>
-          <TabsContent value="register">
-            <form onSubmit={handleRegisterSubmit} className="space-y-4 mt-4">
-              <div className="space-y-2">
-                <label htmlFor="register-email" className="text-sm font-medium">
-                  Email
-                </label>
-                <Input
-                  id="register-email"
-                  type="email"
-                  placeholder="your.email@example.com"
-                  value={registerEmail}
-                  onChange={(e) => setRegisterEmail(e.target.value)}
-                  required
+                  {...loginForm.register("password")}
                 />
+                {loginForm.formState.errors.password && (
+                  <p className="text-sm text-red-500">{loginForm.formState.errors.password.message}</p>
+                )}
               </div>
-              <div className="space-y-2">
-                <label htmlFor="username" className="text-sm font-medium">
-                  Username
-                </label>
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Signing in..." : "Sign In"}
+              </Button>
+            </div>
+          </form>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+            </div>
+          </div>
+          <SocialAuthButtons />
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+        </div>
+      </TabsContent>
+      <TabsContent value="register">
+        <div className="grid gap-6">
+          <form onSubmit={registerForm.handleSubmit(handleRegisterSubmit)}>
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <Label htmlFor="username">Username</Label>
                 <Input
                   id="username"
+                  placeholder="johndoe"
                   type="text"
-                  placeholder="yourname"
-                  value={registerUsername}
-                  onChange={(e) => setRegisterUsername(e.target.value)}
-                  required
+                  autoCapitalize="none"
+                  autoCorrect="off"
+                  disabled={isLoading}
+                  {...registerForm.register("username")}
                 />
+                {registerForm.formState.errors.username && (
+                  <p className="text-sm text-red-500">{registerForm.formState.errors.username.message}</p>
+                )}
               </div>
-              <div className="space-y-2">
-                <label htmlFor="register-password" className="text-sm font-medium">
-                  Password
-                </label>
+              <div className="grid gap-2">
+                <Label htmlFor="email">Email</Label>
                 <Input
-                  id="register-password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={registerPassword}
-                  onChange={(e) => setRegisterPassword(e.target.value)}
-                  required
+                  id="email"
+                  placeholder="name@example.com"
+                  type="email"
+                  autoCapitalize="none"
+                  autoComplete="email"
+                  autoCorrect="off"
+                  disabled={isLoading}
+                  {...registerForm.register("email")}
                 />
+                {registerForm.formState.errors.email && (
+                  <p className="text-sm text-red-500">{registerForm.formState.errors.email.message}</p>
+                )}
               </div>
-              <div className="space-y-2">
-                <label htmlFor="user-type" className="text-sm font-medium">
-                  I am a
-                </label>
-                <Select value={registerUserType} onValueChange={(value) => setRegisterUserType(value)}>
-                  <SelectTrigger id="user-type">
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="reader">Reader</SelectItem>
-                    <SelectItem value="writer">Writer</SelectItem>
-                    <SelectItem value="educator">Educator</SelectItem>
-                  </SelectContent>
-                </Select>
+              <div className="grid gap-2">
+                <Label htmlFor="password">Password</Label>
+                <Input
+                  id="password"
+                  placeholder="••••••••"
+                  type="password"
+                  autoCapitalize="none"
+                  autoComplete="new-password"
+                  disabled={isLoading}
+                  {...registerForm.register("password")}
+                />
+                {registerForm.formState.errors.password && (
+                  <p className="text-sm text-red-500">{registerForm.formState.errors.password.message}</p>
+                )}
+                <p className="text-xs text-muted-foreground">Password must be at least 6 characters long</p>
               </div>
-              {registerError && <div className="text-sm text-red-500">{registerError}</div>}
-              <Button type="submit" className="w-full" disabled={isLoading}>
-                {isLoading ? "Creating account..." : "Create account"}
+              <Button type="submit" disabled={isLoading}>
+                {isLoading ? "Creating account..." : "Create Account"}
               </Button>
-            </form>
-          </TabsContent>
-        </Tabs>
-
-        <div className="relative my-4">
-          <div className="absolute inset-0 flex items-center">
-            <span className="w-full border-t" />
+            </div>
+          </form>
+          <div className="relative">
+            <div className="absolute inset-0 flex items-center">
+              <span className="w-full border-t" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
+            </div>
           </div>
-          <div className="relative flex justify-center text-xs uppercase">
-            <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-          </div>
+          <SocialAuthButtons />
+          {error && (
+            <Alert variant="destructive">
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          )}
+          {success && (
+            <Alert>
+              <AlertDescription>{success}</AlertDescription>
+            </Alert>
+          )}
         </div>
-
-        <SocialAuthButtons />
-      </CardContent>
-      <CardFooter className="flex justify-center">
-        <p className="text-sm text-muted-foreground">
-          By continuing, you agree to Writha's Terms of Service and Privacy Policy.
-        </p>
-      </CardFooter>
-    </Card>
+      </TabsContent>
+    </Tabs>
   )
 }

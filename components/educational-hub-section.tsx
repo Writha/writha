@@ -9,7 +9,8 @@ import { BookOpen, School, FileText, ShieldCheck } from "lucide-react"
 import EducationalBookCard from "./educational-book-card"
 import EducationalFilter from "./educational-filter"
 
-export default function EducationalHubSection() {
+// Change from default export to named export
+export function EducationalHubSection() {
   const [selectedLevel, setSelectedLevel] = useState("All Levels")
   const [selectedSubject, setSelectedSubject] = useState("All Subjects")
 

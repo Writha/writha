@@ -1,247 +1,247 @@
-export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 export interface Database {
   public: {
     Tables: {
       profiles: {
         Row: {
-          id: string
-          username: string
-          full_name: string | null
-          avatar_url: string | null
-          bio: string | null
-          user_type: "reader" | "writer" | "educator" | "admin"
-          wallet_balance: number
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          username: string;
+          full_name: string | null;
+          avatar_url: string | null;
+          bio: string | null;
+          user_type: "reader" | "writer" | "educator" | "admin";
+          wallet_balance: number;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id: string
-          username: string
-          full_name?: string | null
-          avatar_url?: string | null
-          bio?: string | null
-          user_type: "reader" | "writer" | "educator" | "admin"
-          wallet_balance?: number
-          created_at?: string
-          updated_at?: string
-        }
+          id: string;
+          username: string;
+          full_name?: string | null;
+          avatar_url?: string | null;
+          bio?: string | null;
+          user_type: "reader" | "writer" | "educator" | "admin";
+          wallet_balance?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          username?: string
-          full_name?: string | null
-          avatar_url?: string | null
-          bio?: string | null
-          user_type?: "reader" | "writer" | "educator" | "admin"
-          wallet_balance?: number
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          username?: string;
+          full_name?: string | null;
+          avatar_url?: string | null;
+          bio?: string | null;
+          user_type?: "reader" | "writer" | "educator" | "admin";
+          wallet_balance?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       books: {
         Row: {
-          id: string
-          title: string
-          author: string
-          cover_url: string | null
-          description: string | null
-          price: number | null
-          is_free: boolean
-          genre: string | null
-          rating: number | null
-          published_date: string | null
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          title: string;
+          author: string;
+          cover_url: string | null;
+          description: string | null;
+          price: number | null;
+          is_free: boolean;
+          genre: string | null;
+          rating: number | null;
+          published_date: string | null;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          title: string
-          author: string
-          cover_url?: string | null
-          description?: string | null
-          price?: number | null
-          is_free?: boolean
-          genre?: string | null
-          rating?: number | null
-          published_date?: string | null
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          title: string;
+          author: string;
+          cover_url?: string | null;
+          description?: string | null;
+          price?: number | null;
+          is_free?: boolean;
+          genre?: string | null;
+          rating?: number | null;
+          published_date?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          title?: string
-          author?: string
-          cover_url?: string | null
-          description?: string | null
-          price?: number | null
-          is_free?: boolean
-          genre?: string | null
-          rating?: number | null
-          published_date?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          title?: string;
+          author?: string;
+          cover_url?: string | null;
+          description?: string | null;
+          price?: number | null;
+          is_free?: boolean;
+          genre?: string | null;
+          rating?: number | null;
+          published_date?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       writer_stories: {
         Row: {
-          id: string
-          title: string
-          cover_url: string | null
-          description: string | null
-          price: number | null
-          is_free: boolean
-          genre: string | null
-          is_completed: boolean
-          writer_id: string
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          title: string;
+          cover_url: string | null;
+          description: string | null;
+          price: number | null;
+          is_free: boolean;
+          genre: string | null;
+          is_completed: boolean;
+          writer_id: string;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          title: string
-          cover_url?: string | null
-          description?: string | null
-          price?: number | null
-          is_free?: boolean
-          genre?: string | null
-          is_completed?: boolean
-          writer_id: string
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          title: string;
+          cover_url?: string | null;
+          description?: string | null;
+          price?: number | null;
+          is_free?: boolean;
+          genre?: string | null;
+          is_completed?: boolean;
+          writer_id: string;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          title?: string
-          cover_url?: string | null
-          description?: string | null
-          price?: number | null
-          is_free?: boolean
-          genre?: string | null
-          is_completed?: boolean
-          writer_id?: string
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          title?: string;
+          cover_url?: string | null;
+          description?: string | null;
+          price?: number | null;
+          is_free?: boolean;
+          genre?: string | null;
+          is_completed?: boolean;
+          writer_id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       story_chapters: {
         Row: {
-          id: string
-          story_id: string
-          title: string
-          content: string
-          chapter_number: number
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          story_id: string;
+          title: string;
+          content: string;
+          chapter_number: number;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          story_id: string
-          title: string
-          content: string
-          chapter_number: number
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          story_id: string;
+          title: string;
+          content: string;
+          chapter_number: number;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          story_id?: string
-          title?: string
-          content?: string
-          chapter_number?: number
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          story_id?: string;
+          title?: string;
+          content?: string;
+          chapter_number?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       user_library: {
         Row: {
-          id: string
-          user_id: string
-          book_id: string | null
-          writer_story_id: string | null
-          purchase_date: string
-          is_rented: boolean
-          rental_expiry: string | null
-        }
+          id: string;
+          user_id: string;
+          book_id: string | null;
+          writer_story_id: string | null;
+          purchase_date: string;
+          is_rented: boolean;
+          rental_expiry: string | null;
+        };
         Insert: {
-          id?: string
-          user_id: string
-          book_id?: string | null
-          writer_story_id?: string | null
-          purchase_date?: string
-          is_rented?: boolean
-          rental_expiry?: string | null
-        }
+          id?: string;
+          user_id: string;
+          book_id?: string | null;
+          writer_story_id?: string | null;
+          purchase_date?: string;
+          is_rented?: boolean;
+          rental_expiry?: string | null;
+        };
         Update: {
-          id?: string
-          user_id?: string
-          book_id?: string | null
-          writer_story_id?: string | null
-          purchase_date?: string
-          is_rented?: boolean
-          rental_expiry?: string | null
-        }
-      }
+          id?: string;
+          user_id?: string;
+          book_id?: string | null;
+          writer_story_id?: string | null;
+          purchase_date?: string;
+          is_rented?: boolean;
+          rental_expiry?: string | null;
+        };
+      };
       ratings: {
         Row: {
-          id: string
-          user_id: string
-          book_id: string | null
-          writer_story_id: string | null
-          rating: number
-          review: string | null
-          created_at: string
-          updated_at: string
-        }
+          id: string;
+          user_id: string;
+          book_id: string | null;
+          writer_story_id: string | null;
+          rating: number;
+          review: string | null;
+          created_at: string;
+          updated_at: string;
+        };
         Insert: {
-          id?: string
-          user_id: string
-          book_id?: string | null
-          writer_story_id?: string | null
-          rating: number
-          review?: string | null
-          created_at?: string
-          updated_at?: string
-        }
+          id?: string;
+          user_id: string;
+          book_id?: string | null;
+          writer_story_id?: string | null;
+          rating: number;
+          review?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
         Update: {
-          id?: string
-          user_id?: string
-          book_id?: string | null
-          writer_story_id?: string | null
-          rating?: number
-          review?: string | null
-          created_at?: string
-          updated_at?: string
-        }
-      }
+          id?: string;
+          user_id?: string;
+          book_id?: string | null;
+          writer_story_id?: string | null;
+          rating?: number;
+          review?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       transactions: {
         Row: {
-          id: string
-          user_id: string
-          amount: number
-          transaction_type: "purchase" | "sale" | "refund" | "payout" | "deposit"
-          description: string | null
-          reference_id: string | null
-          created_at: string
-        }
+          id: string;
+          user_id: string;
+          amount: number;
+          transaction_type: "purchase" | "sale" | "refund" | "payout" | "deposit";
+          description: string | null;
+          reference_id: string | null;
+          created_at: string;
+        };
         Insert: {
-          id?: string
-          user_id: string
-          amount: number
-          transaction_type: "purchase" | "sale" | "refund" | "payout" | "deposit"
-          description?: string | null
-          reference_id?: string | null
-          created_at?: string
-        }
+          id?: string;
+          user_id: string;
+          amount: number;
+          transaction_type: "purchase" | "sale" | "refund" | "payout" | "deposit";
+          description?: string | null;
+          reference_id?: string | null;
+          created_at?: string;
+        };
         Update: {
-          id?: string
-          user_id?: string
-          amount?: number
-          transaction_type?: "purchase" | "sale" | "refund" | "payout" | "deposit"
-          description?: string | null
-          reference_id?: string | null
-          created_at?: string
-        }
-      }
+          id?: string;
+          user_id?: string;
+          amount?: number;
+          transaction_type?: "purchase" | "sale" | "refund" | "payout" | "deposit";
+          description?: string | null;
+          reference_id?: string | null;
+          created_at?: string;
+        };
+      };
       book_comments: {
         Row: {
           id: string

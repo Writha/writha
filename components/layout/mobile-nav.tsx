@@ -4,19 +4,31 @@ import { useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet"
-import { BookOpen, Menu, Home, BookMarked, PenTool, User, Wallet, LogOut } from "lucide-react"
-import { getSupabaseClient } from "@/lib/supabase/client"
+import { BookOpen, Menu, Home, BookMarked, PenTool, User, Wallet, LogOut, LogIn } from "lucide-react"
 import { useRouter } from "next/navigation"
 
-export function MobileNav() {
+interface MobileNavProps {
+  isAuthenticated?: boolean
+}
+
+export function MobileNav({ isAuthenticated = false }: MobileNavProps) {
   const [open, setOpen] = useState(false)
   const router = useRouter()
-  const supabase = getSupabaseClient()
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push("/login")
-    router.refresh()
+    try {
+      if (isAuthenticated) {
+        // Import dynamically to avoid issues during rendering
+        const { getSupabaseClient } = await import("@/lib/supabase/client")
+        const supabase = getSupabaseClient()
+        await supabase.auth.signOut()
+      }
+      router.push("/login")
+      router.refresh()
+    } catch (error) {
+      console.error("Error during logout:", error)
+      router.push("/login")
+    }
   }
 
   return (
@@ -86,13 +98,24 @@ export function MobileNav() {
             <Wallet className="mr-2 h-4 w-4" />
             Wallet
           </Link>
-          <button
-            onClick={handleLogout}
-            className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-accent text-left"
-          >
-            <LogOut className="mr-2 h-4 w-4" />
-            Logout
-          </button>
+          {isAuthenticated ? (
+            <button
+              onClick={handleLogout}
+              className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-accent text-left"
+            >
+              <LogOut className="mr-2 h-4 w-4" />
+              Logout
+            </button>
+          ) : (
+            <Link
+              href="/login"
+              onClick={() => setOpen(false)}
+              className="flex items-center px-3 py-2 text-sm font-medium rounded-md hover:bg-accent"
+            >
+              <LogIn className="mr-2 h-4 w-4" />
+              Login
+            </Link>
+          )}
         </div>
       </SheetContent>
     </Sheet>

@@ -29,6 +29,8 @@ export async function createProfileForNewUser(userId: string, email: string, pro
         username,
         user_type: "reader", // Default role for social login users
         wallet_balance: 0,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
       })
 
       if (insertError) {

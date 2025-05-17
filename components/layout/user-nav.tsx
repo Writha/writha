@@ -11,7 +11,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { getSupabaseClient } from "@/lib/supabase/client"
 import { useRouter } from "next/navigation"
 
 interface UserNavProps {
@@ -21,16 +20,26 @@ interface UserNavProps {
     avatar_url: string | null
     user_type: string
   }
+  isAuthenticated?: boolean
 }
 
-export function UserNav({ user }: UserNavProps) {
+export function UserNav({ user, isAuthenticated = false }: UserNavProps) {
   const router = useRouter()
-  const supabase = getSupabaseClient()
 
   const handleLogout = async () => {
-    await supabase.auth.signOut()
-    router.push("/login")
-    router.refresh()
+    try {
+      if (isAuthenticated) {
+        // Import dynamically to avoid issues during rendering
+        const { getSupabaseClient } = await import("@/lib/supabase/client")
+        const supabase = getSupabaseClient()
+        await supabase.auth.signOut()
+      }
+      router.push("/login")
+      router.refresh()
+    } catch (error) {
+      console.error("Error during logout:", error)
+      router.push("/login")
+    }
   }
 
   return (
@@ -48,6 +57,7 @@ export function UserNav({ user }: UserNavProps) {
           <div className="flex flex-col space-y-1">
             <p className="text-sm font-medium leading-none">{user.username}</p>
             <p className="text-xs leading-none text-muted-foreground capitalize">{user.user_type}</p>
+            {!isAuthenticated && <p className="text-xs text-muted-foreground mt-1">(Guest Mode)</p>}
           </div>
         </DropdownMenuLabel>
         <DropdownMenuSeparator />
@@ -58,7 +68,11 @@ export function UserNav({ user }: UserNavProps) {
           <DropdownMenuItem onClick={() => router.push("/settings")}>Settings</DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
+        {isAuthenticated ? (
+          <DropdownMenuItem onClick={handleLogout}>Log out</DropdownMenuItem>
+        ) : (
+          <DropdownMenuItem onClick={() => router.push("/login")}>Log in</DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   )
